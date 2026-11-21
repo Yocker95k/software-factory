@@ -11,6 +11,15 @@ say() { printf "\n\033[1m▶ %s\033[0m\n" "$*"; }
 [ "$(id -u)" -eq 0 ] || { echo "Bitte als root ausführen (sudo ./setup.sh)"; exit 1; }
 export DEBIAN_FRONTEND=noninteractive
 
+# Lokal unter Windows (WSL2)? Dann läuft die Vorschau auf localhost statt auf der öffentlichen IP.
+IS_WSL=0
+grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
+if [ ! -d /run/systemd/system ]; then
+  echo "systemd läuft nicht. Die Factory läuft als systemd-Dienst und braucht es."
+  [ "$IS_WSL" -eq 1 ] && echo "WSL: in /etc/wsl.conf unter [boot] 'systemd=true' eintragen, in Windows 'wsl --shutdown' ausführen und Ubuntu neu öffnen (siehe docs/lokal-wsl-setup.md)."
+  exit 1
+fi
+
 say "Systempakete"
 apt-get update -qq
 apt-get install -y -qq ca-certificates curl gnupg jq unzip git >/dev/null
@@ -47,12 +56,12 @@ install -d -m 700 "$CONF_DIR"
 install -d /var/lib/software-factory/jobs
 # Vorschau: Server-IP und zufälliges Passwort eintragen, falls noch "AUTO"
 if jq -e '.preview.host == "AUTO" or .preview.password == "AUTO"' "$CONF_DIR/config.json" >/dev/null 2>&1; then
-  IP=$(curl -fsS4 https://ifconfig.me || hostname -I | awk '{print $1}')
+  if [ "$IS_WSL" -eq 1 ]; then IP=localhost; else IP=$(curl -fsS4 https://ifconfig.me || hostname -I | awk '{print $1}'); fi
   PW=$(openssl rand -base64 18 | tr -d '/+=' | cut -c1-16)
   TMP=$(mktemp)
   jq --arg ip "$IP" --arg pw "$PW" '.preview.host = (if .preview.host == "AUTO" then $ip else .preview.host end) | .preview.password = (if .preview.password == "AUTO" then $pw else .preview.password end)' "$CONF_DIR/config.json" > "$TMP" && mv "$TMP" "$CONF_DIR/config.json" && chmod 600 "$CONF_DIR/config.json"
   echo "  Vorschau: http://$IP:4001… · Login factory · Passwort in $CONF_DIR/config.json"
-  echo "  Für HTTPS (empfohlen): eine Subdomain auf $IP zeigen lassen und unter preview.domain eintragen (siehe Anleitung)"
+  [ "$IS_WSL" -eq 1 ] || echo "  Für HTTPS (empfohlen): eine Subdomain auf $IP zeigen lassen und unter preview.domain eintragen (siehe Anleitung)"
 fi
 docker pull -q caddy:2-alpine >/dev/null
 

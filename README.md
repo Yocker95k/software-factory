@@ -5,6 +5,7 @@ Eine Software Factory mit Claude Code, die rund um die Uhr auf deinem eigenen Se
 > 🖥️ **Server:** Die Factory läuft auf einem Linux-VPS. Getestet ist sie auf dem **Hostinger KVM 2** (2 CPU-Kerne, 8 GB RAM) mit der Vorlage „Ubuntu 24.04 mit Claude Code“.
 > Server holen: **[hostinger.com/alexclaude](https://hostinger.com/alexclaude)**. Mit dem Code **`ALEXCLAUDE`** sparst du zusätzlich 10 %.
 > Einrichtung Schritt für Schritt: **[docs/hostinger-vps-setup.md](docs/hostinger-vps-setup.md)**
+> Lokal unter Windows ausprobieren (WSL2): **[docs/lokal-wsl-setup.md](docs/lokal-wsl-setup.md)**
 >
 > _Affiliate-Link: Wenn du darüber kaufst, bekomme ich eine Provision. Für dich ändert sich am Preis nichts, mit dem Code wird es günstiger._
 
