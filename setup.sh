@@ -14,6 +14,9 @@ export DEBIAN_FRONTEND=noninteractive
 # Lokal unter Windows (WSL2)? Dann läuft die Vorschau auf localhost statt auf der öffentlichen IP.
 IS_WSL=0
 grep -qi microsoft /proc/version 2>/dev/null && IS_WSL=1
+# WSL hängt den Windows-PATH an. Ohne diese Zeile hält setup.sh z. B. das docker von Docker Desktop
+# (/mnt/c/...) für installiert und richtet Docker in Ubuntu nicht ein.
+[ "$IS_WSL" -eq 1 ] && PATH=$(printf %s "$PATH" | tr ':' '\n' | grep -v '^/mnt/' | paste -sd: -)
 if [ ! -d /run/systemd/system ]; then
   echo "systemd läuft nicht. Die Factory läuft als systemd-Dienst und braucht es."
   [ "$IS_WSL" -eq 1 ] && echo "WSL: in /etc/wsl.conf unter [boot] 'systemd=true' eintragen, in Windows 'wsl --shutdown' ausführen und Ubuntu neu öffnen (siehe docs/lokal-wsl-setup.md)."

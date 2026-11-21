@@ -16,7 +16,7 @@ Schritt für Schritt vom Windows-Rechner bis zur laufenden Factory, ohne eigenen
 - einen GitHub-Account
 - unter Windows: [Claude Code](https://code.claude.com), `git` und die [GitHub CLI](https://cli.github.com) (`gh`)
 
-> Docker Desktop brauchst du nicht. Docker läuft direkt in Ubuntu. Hast du Docker Desktop schon installiert, schalte dort die WSL-Integration für Ubuntu aus, damit sich die beiden nicht in die Quere kommen.
+> Docker Desktop brauchst du nicht. Docker läuft direkt in Ubuntu. Hast du Docker Desktop schon installiert, schalte dort die WSL-Integration für Ubuntu aus, damit sich die beiden nicht in die Quere kommen. `setup.sh` ignoriert das `docker` von Docker Desktop, das über den Windows-PATH in Ubuntu sichtbar ist, und installiert Docker trotzdem in Ubuntu.
 
 ---
 
