@@ -30,21 +30,27 @@ wsl --install -d Ubuntu-24.04
 
 Starte den Rechner neu. Öffne dann **Ubuntu 24.04** aus dem Startmenü und leg einen Linux-Benutzernamen und ein Passwort an.
 
-## 2. Speicher und Dauerbetrieb einstellen
+## 2. Speicher und CPU begrenzen
 
 Leg unter Windows die Datei `.wslconfig` in deinem Benutzerordner an (`C:\Users\DEIN-NAME\.wslconfig`):
 
 ```ini
 [wsl2]
-memory=8GB
+# Obergrenze, keine feste Reservierung
+memory=6GB
+# höchstens 4 CPU-Kerne für WSL, der Rest bleibt für Windows
 processors=4
 
-[general]
-# WSL nicht beenden, wenn kein Ubuntu-Fenster offen ist
-vmIdleTimeout=-1
+[experimental]
+# ungenutzten Speicher nach und nach an Windows zurückgeben
+autoMemoryReclaim=gradual
 ```
 
-Stell außerdem in den Windows-Energieeinstellungen ein, dass der Rechner im Netzbetrieb nicht in den Ruhezustand geht.
+- `memory` ist eine **Obergrenze**. WSL belegt Speicher erst, wenn darin etwas läuft. Ohne die Zeile darf WSL bis zur Hälfte deines RAMs nehmen.
+- 6 GB reichen für einen Agent-Lauf (bis zu 3 GB), eine Vorschau (bis zu 1,5 GB) und den Grundbedarf. Willst du zwei Läufe gleichzeitig (`maxParallel: 2`), stell `memory=8GB` ein.
+- `autoMemoryReclaim` sorgt dafür, dass WSL den Speicher nach einem Lauf wieder an Windows zurückgibt.
+
+Soll die Factory dauerhaft laufen, stell in den Windows-Energieeinstellungen ein, dass der Rechner im Netzbetrieb nicht in den Ruhezustand geht.
 
 ## 3. systemd einschalten
 
@@ -113,9 +119,23 @@ docker ps                              # laufende Agent-Container
 
 Vorschauen öffnest du im Windows-Browser unter `http://localhost:4001`. Der Login ist `factory`, das Passwort steht in `/etc/software-factory/config.json`. WSL leitet die Ports automatisch an Windows weiter.
 
+## Ressourcen sparen und pausieren
+
+Nutzt du den Rechner auch für anderes, z. B. zum Spielen, hilft ein Blick darauf, was die Factory wann braucht. Die Werte sind ungefähre Größenordnungen:
+
+| Zustand | Speicherbedarf (ungefähr) |
+|---|---|
+| Factory wartet auf Aufträge (WSL, Runner, Caddy) | einige hundert MB |
+| ein Agent-Lauf aktiv | bis zu 3 GB zusätzlich (`containerMemory`) |
+| Vorschau eines offenen PRs | bis zu 1,5 GB, **solange der PR offen ist** |
+
+- **Vorschau abschalten:** Entfern in `/etc/software-factory/config.json` den Block `"preview"` und führ `systemctl restart software-factory` aus. Der Pull Request enthält weiterhin Checks und Screenshots. Alternativ PRs zügig mergen oder schließen, dann wird die Vorschau entfernt.
+- **Factory pausieren:** `wsl --shutdown` in PowerShell beendet WSL samt Factory sofort und gibt Speicher und CPU frei. Ein gerade laufender Auftrag bricht dabei ab. Öffnest du Ubuntu wieder, startet der Dienst von selbst.
+- **Nur den Runner anhalten**, WSL läuft weiter: `systemctl stop software-factory`, später `systemctl start software-factory`.
+
 ## Häufige Probleme
 
 - **`setup.sh` meldet „systemd läuft nicht“:** Schritt 3 wiederholen. Danach unbedingt `wsl --shutdown` ausführen.
-- **Die Factory steht nach einer Weile still:** Der Rechner war im Ruhezustand oder WSL wurde beendet. Prüf `vmIdleTimeout` und die Energieeinstellungen aus Schritt 2.
+- **Die Factory steht nach einer Weile still:** Der Rechner war im Ruhezustand oder WSL wurde beendet. Prüf die Energieeinstellungen aus Schritt 2. Fährt WSL herunter, sobald kein Ubuntu-Fenster offen ist, trag in `.wslconfig` zusätzlich einen Abschnitt `[general]` mit `vmIdleTimeout=-1` ein.
 - **Die Vorschau ist unter Windows nicht erreichbar:** Führ `wsl --shutdown` aus und öffne Ubuntu neu. Prüf, dass in `.wslconfig` nicht `localhostForwarding=false` steht.
-- **Container brechen mit Speicherfehlern ab:** Erhöh in `.wslconfig` den Wert `memory` oder lass `maxParallel` auf `1`.
+- **Container brechen mit Speicherfehlern ab:** Erhöh in `.wslconfig` den Wert `memory`, lass `maxParallel` auf `1` oder schalte die Vorschau ab.
